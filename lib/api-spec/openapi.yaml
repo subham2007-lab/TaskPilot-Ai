@@ -1,0 +1,584 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: TaskPilot AI productivity planning API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: taskpilot
+    description: TaskPilot workspace, planning, and focus operations
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /taskpilot/workspace:
+    get:
+      operationId: getWorkspace
+      tags: [taskpilot]
+      summary: Load the TaskPilot workspace
+      responses:
+        "200":
+          description: Workspace data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkspaceSnapshot"
+  /taskpilot/dashboard:
+    get:
+      operationId: getDashboard
+      tags: [taskpilot]
+      summary: Load dashboard metrics and current project
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+  /taskpilot/tasks:
+    post:
+      operationId: createTask
+      tags: [taskpilot]
+      summary: Create a task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaskInput"
+      responses:
+        "201":
+          description: Created task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "400":
+          description: Invalid task data
+  /taskpilot/tasks/{taskId}:
+    patch:
+      operationId: updateTask
+      tags: [taskpilot]
+      summary: Update task details or progress
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaskUpdate"
+      responses:
+        "200":
+          description: Updated task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "404":
+          description: Task not found
+    delete:
+      operationId: deleteTask
+      tags: [taskpilot]
+      summary: Delete a task
+      parameters:
+        - name: taskId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Task deleted
+        "404":
+          description: Task not found
+  /taskpilot/tasks/parse:
+    post:
+      operationId: parseTask
+      tags: [taskpilot]
+      summary: Turn a natural-language request into a task draft
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaskParseInput"
+      responses:
+        "200":
+          description: Structured task draft for user confirmation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskDraft"
+  /taskpilot/tasks/decompose:
+    post:
+      operationId: decomposeTask
+      tags: [taskpilot]
+      summary: Suggest ordered subtasks for a larger task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaskDecompositionInput"
+      responses:
+        "200":
+          description: Suggested task steps
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DecompositionStep"
+  /taskpilot/projects:
+    post:
+      operationId: createProject
+      tags: [taskpilot]
+      summary: Create a project
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProjectInput"
+      responses:
+        "201":
+          description: Created project
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+  /taskpilot/calendar-events:
+    post:
+      operationId: createCalendarEvent
+      tags: [taskpilot]
+      summary: Add a meeting or calendar block
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CalendarEventInput"
+      responses:
+        "201":
+          description: Created calendar event
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CalendarEvent"
+  /taskpilot/recommendation:
+    post:
+      operationId: getNextAction
+      tags: [taskpilot]
+      summary: Recommend one next action using workspace state
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecommendationInput"
+      responses:
+        "200":
+          description: One recommended action and alternatives
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Recommendation"
+  /taskpilot/planner/replan:
+    post:
+      operationId: previewReplan
+      tags: [taskpilot]
+      summary: Preview a revised schedule after a disruption
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReplanInput"
+      responses:
+        "200":
+          description: Proposed schedule changes
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReplanPreview"
+  /taskpilot/planner/replan/accept:
+    post:
+      operationId: acceptReplan
+      tags: [taskpilot]
+      summary: Save the user's accepted schedule changes
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReplanAcceptInput"
+      responses:
+        "200":
+          description: Updated tasks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Task"
+  /taskpilot/focus-sessions:
+    post:
+      operationId: createFocusSession
+      tags: [taskpilot]
+      summary: Save a completed or paused focus session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FocusSessionInput"
+      responses:
+        "201":
+          description: Saved focus session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FocusSession"
+  /taskpilot/preferences:
+    patch:
+      operationId: updatePreferences
+      tags: [taskpilot]
+      summary: Update working preferences and appearance
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PreferencesUpdate"
+      responses:
+        "200":
+          description: Updated preferences
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Preferences"
+  /taskpilot/assistant/messages:
+    post:
+      operationId: sendAssistantMessage
+      tags: [taskpilot]
+      summary: Answer a question using the saved workspace
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssistantMessageInput"
+      responses:
+        "200":
+          description: Workspace-grounded assistant response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssistantMessage"
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+    TaskStatus:
+      type: string
+      enum: [not_started, in_progress, completed]
+    TaskPriority:
+      type: string
+      enum: [low, medium, high, critical]
+    TaskCategory:
+      type: string
+      enum: [work, study, personal, project, health, other]
+    ProductivePeriod:
+      type: string
+      enum: [morning, afternoon, evening, flexible]
+    Task:
+      type: object
+      required: [id, title, status, priority, category, estimateMinutes, dependencies, createdAt]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        description: { type: ["string", "null"] }
+        projectId: { type: ["string", "null"] }
+        status: { $ref: "#/components/schemas/TaskStatus" }
+        priority: { $ref: "#/components/schemas/TaskPriority" }
+        category: { $ref: "#/components/schemas/TaskCategory" }
+        estimateMinutes: { type: integer, minimum: 1 }
+        dueAt: { type: ["string", "null"], format: date-time }
+        scheduledAt: { type: ["string", "null"], format: date-time }
+        completedAt: { type: ["string", "null"], format: date-time }
+        dependencies:
+          type: array
+          items: { type: string }
+        parentTaskId: { type: ["string", "null"] }
+        recurring: { type: boolean }
+        createdAt: { type: string, format: date-time }
+    TaskInput:
+      type: object
+      required: [title, priority, category, estimateMinutes]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 180 }
+        description: { type: string, maxLength: 2000 }
+        projectId: { type: ["string", "null"] }
+        priority: { $ref: "#/components/schemas/TaskPriority" }
+        category: { $ref: "#/components/schemas/TaskCategory" }
+        estimateMinutes: { type: integer, minimum: 1, maximum: 1440 }
+        dueAt: { type: ["string", "null"], format: date-time }
+        scheduledAt: { type: ["string", "null"], format: date-time }
+        dependencies:
+          type: array
+          items: { type: string }
+        parentTaskId: { type: ["string", "null"] }
+        recurring: { type: boolean, default: false }
+    TaskUpdate:
+      type: object
+      properties:
+        title: { type: string, minLength: 1, maxLength: 180 }
+        description: { type: ["string", "null"], maxLength: 2000 }
+        projectId: { type: ["string", "null"] }
+        status: { $ref: "#/components/schemas/TaskStatus" }
+        priority: { $ref: "#/components/schemas/TaskPriority" }
+        category: { $ref: "#/components/schemas/TaskCategory" }
+        estimateMinutes: { type: integer, minimum: 1, maximum: 1440 }
+        dueAt: { type: ["string", "null"], format: date-time }
+        scheduledAt: { type: ["string", "null"], format: date-time }
+        completedAt: { type: ["string", "null"], format: date-time }
+        dependencies:
+          type: array
+          items: { type: string }
+        parentTaskId: { type: ["string", "null"] }
+        recurring: { type: boolean }
+    TaskParseInput:
+      type: object
+      required: [text]
+      properties:
+        text: { type: string, minLength: 3, maxLength: 1000 }
+    TaskDraft:
+      type: object
+      required: [title, description, priority, category, estimateMinutes, dueAt]
+      properties:
+        title: { type: string }
+        description: { type: string }
+        priority: { $ref: "#/components/schemas/TaskPriority" }
+        category: { $ref: "#/components/schemas/TaskCategory" }
+        estimateMinutes: { type: integer }
+        dueAt: { type: ["string", "null"], format: date-time }
+    TaskDecompositionInput:
+      type: object
+      required: [title]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 180 }
+        description: { type: string, maxLength: 2000 }
+    DecompositionStep:
+      type: object
+      required: [title, estimateMinutes]
+      properties:
+        title: { type: string }
+        estimateMinutes: { type: integer }
+    Project:
+      type: object
+      required: [id, title, goal, progressPercent, createdAt]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        goal: { type: string }
+        deadline: { type: ["string", "null"], format: date-time }
+        progressPercent: { type: integer, minimum: 0, maximum: 100 }
+        createdAt: { type: string, format: date-time }
+    ProjectInput:
+      type: object
+      required: [title, goal]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 180 }
+        goal: { type: string, maxLength: 2000 }
+        deadline: { type: ["string", "null"], format: date-time }
+    CalendarEvent:
+      type: object
+      required: [id, title, eventType, startAt, endAt]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        eventType: { type: string, enum: [meeting, break, focus, deadline] }
+        startAt: { type: string, format: date-time }
+        endAt: { type: string, format: date-time }
+        description: { type: ["string", "null"] }
+    CalendarEventInput:
+      type: object
+      required: [title, eventType, startAt, endAt]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 180 }
+        eventType: { type: string, enum: [meeting, break, focus, deadline] }
+        startAt: { type: string, format: date-time }
+        endAt: { type: string, format: date-time }
+        description: { type: string, maxLength: 1000 }
+    FocusSession:
+      type: object
+      required: [id, taskId, startedAt, plannedMinutes, actualMinutes, completed]
+      properties:
+        id: { type: string }
+        taskId: { type: string }
+        startedAt: { type: string, format: date-time }
+        endedAt: { type: ["string", "null"], format: date-time }
+        plannedMinutes: { type: integer }
+        actualMinutes: { type: integer }
+        outcome: { type: ["string", "null"], enum: [easier, as_expected, longer, null] }
+        completed: { type: boolean }
+    FocusSessionInput:
+      type: object
+      required: [taskId, startedAt, plannedMinutes, actualMinutes, completed]
+      properties:
+        taskId: { type: string }
+        startedAt: { type: string, format: date-time }
+        endedAt: { type: ["string", "null"], format: date-time }
+        plannedMinutes: { type: integer, minimum: 1 }
+        actualMinutes: { type: integer, minimum: 0 }
+        outcome: { type: ["string", "null"], enum: [easier, as_expected, longer, null] }
+        completed: { type: boolean }
+    Preferences:
+      type: object
+      required: [displayName, availableMinutesPerDay, productivePeriod, theme]
+      properties:
+        displayName: { type: string }
+        availableMinutesPerDay: { type: integer }
+        productivePeriod: { $ref: "#/components/schemas/ProductivePeriod" }
+        theme: { type: string, enum: [light, dark] }
+    PreferencesUpdate:
+      type: object
+      properties:
+        displayName: { type: string, minLength: 1, maxLength: 80 }
+        availableMinutesPerDay: { type: integer, minimum: 30, maximum: 960 }
+        productivePeriod: { $ref: "#/components/schemas/ProductivePeriod" }
+        theme: { type: string, enum: [light, dark] }
+    Notification:
+      type: object
+      required: [id, title, body, kind, createdAt, read]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        body: { type: string }
+        kind: { type: string, enum: [deadline, overdue, schedule, risk, milestone, suggestion] }
+        createdAt: { type: string, format: date-time }
+        read: { type: boolean }
+    WorkspaceSnapshot:
+      type: object
+      required: [tasks, projects, events, sessions, notifications, preferences]
+      properties:
+        tasks:
+          type: array
+          items: { $ref: "#/components/schemas/Task" }
+        projects:
+          type: array
+          items: { $ref: "#/components/schemas/Project" }
+        events:
+          type: array
+          items: { $ref: "#/components/schemas/CalendarEvent" }
+        sessions:
+          type: array
+          items: { $ref: "#/components/schemas/FocusSession" }
+        notifications:
+          type: array
+          items: { $ref: "#/components/schemas/Notification" }
+        preferences: { $ref: "#/components/schemas/Preferences" }
+    DashboardSummary:
+      type: object
+      required: [todayCompleted, todayTotal, focusMinutesToday, overdueCount, averageCompletionMinutes, productivityPercent, weeklyFocusMinutes]
+      properties:
+        todayCompleted: { type: integer }
+        todayTotal: { type: integer }
+        focusMinutesToday: { type: integer }
+        overdueCount: { type: integer }
+        averageCompletionMinutes: { type: integer }
+        productivityPercent: { type: integer }
+        weeklyFocusMinutes:
+          type: array
+          items: { type: integer }
+    RecommendationInput:
+      type: object
+      required: [now]
+      properties:
+        now: { type: string, format: date-time }
+        availableMinutes: { type: integer, minimum: 1 }
+    Recommendation:
+      type: object
+      required: [task, reason, score, alternatives]
+      properties:
+        task: { $ref: "#/components/schemas/Task" }
+        reason: { type: string }
+        score: { type: integer }
+        alternatives:
+          type: array
+          items: { $ref: "#/components/schemas/Task" }
+    ReplanInput:
+      type: object
+      required: [reason, now]
+      properties:
+        reason: { type: string, enum: [not_completed, meeting_added, time_changed] }
+        taskId: { type: ["string", "null"] }
+        event: { $ref: "#/components/schemas/CalendarEventInput" }
+        availableMinutes: { type: integer, minimum: 1 }
+        now: { type: string, format: date-time }
+    ReplanChange:
+      type: object
+      required: [taskId, title, from, to]
+      properties:
+        taskId: { type: string }
+        title: { type: string }
+        from: { type: ["string", "null"], format: date-time }
+        to: { type: ["string", "null"], format: date-time }
+    ReplanPreview:
+      type: object
+      required: [summary, changes]
+      properties:
+        summary: { type: string }
+        changes:
+          type: array
+          items: { $ref: "#/components/schemas/ReplanChange" }
+    TaskScheduleUpdate:
+      type: object
+      required: [taskId, scheduledAt]
+      properties:
+        taskId: { type: string }
+        scheduledAt: { type: ["string", "null"], format: date-time }
+    ReplanAcceptInput:
+      type: object
+      required: [updates]
+      properties:
+        updates:
+          type: array
+          items: { $ref: "#/components/schemas/TaskScheduleUpdate" }
+    AssistantMessageInput:
+      type: object
+      required: [message]
+      properties:
+        message: { type: string, minLength: 1, maxLength: 2000 }
+    AssistantMessage:
+      type: object
+      required: [answer, action]
+      properties:
+        answer: { type: string }
+        action: { type: string, enum: [none, show_overdue, show_recommendation, start_replan, show_tasks] }
+

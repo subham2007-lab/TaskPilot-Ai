@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "TaskPilot AI"
+description = "An AI productivity co-pilot that turns goals into adaptive daily plans, recommends the next best action, tracks focus sessions, and learns from completed work."
+version = "1.0.0"
+id = "artifacts/taskpilot-ai"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 25983
+
+[services.development]
+run = "pnpm --filter @workspace/taskpilot-ai run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/taskpilot-ai", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/taskpilot-ai/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "25983"
+BASE_PATH = "/"
